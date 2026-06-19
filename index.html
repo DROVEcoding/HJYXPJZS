@@ -24,6 +24,31 @@
           <p id="workspaceIntro">当前 demo 前端保留完整分类骨架，已开放“畜牧业 -> 生猪养殖”。</p>
         </section>
 
+        <section class="panel cloud-panel">
+          <div class="section-heading">
+            <h3>云端账号与项目</h3>
+            <span id="cloudStatus">未登录</span>
+          </div>
+          <div class="cloud-grid">
+            <label class="field">
+              <span>邮箱</span>
+              <input id="authEmail" type="email" placeholder="用于登录和保存项目" />
+            </label>
+            <label class="field">
+              <span>密码</span>
+              <input id="authPassword" type="password" placeholder="至少 6 位" />
+            </label>
+          </div>
+          <div class="cloud-actions">
+            <button id="signInButton" type="button">登录</button>
+            <button id="signUpButton" type="button">注册</button>
+            <button id="signOutButton" type="button">退出</button>
+            <button id="saveProjectButton" type="button">保存当前项目</button>
+          </div>
+          <p id="cloudMessage" class="cloud-message">启动后端后，可以注册账号并保存项目。</p>
+          <div id="projectList" class="project-list"></div>
+        </section>
+
         <section id="noticePanel" class="notice-panel"></section>
 
         <section class="panel form-panel">

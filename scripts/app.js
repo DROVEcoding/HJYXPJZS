@@ -1,5 +1,14 @@
 import { categories, corpusSummary, projectFields, reportSections } from "./data.js";
 import {
+  createProject,
+  getMe,
+  listProjects,
+  loadProject,
+  login,
+  register,
+  updateProject
+} from "./projectApi.js";
+import {
   assessPigFarmCategory,
   canGenerateSection,
   generateSectionDraft,
@@ -10,7 +19,10 @@ import {
 
 const state = {
   selectedItemId: "pig-farming",
-  formData: {}
+  formData: {},
+  projectId: null,
+  currentUser: null,
+  drafts: {}
 };
 
 const categoryNav = document.querySelector("#categoryNav");
@@ -22,8 +34,18 @@ const assessmentResult = document.querySelector("#assessmentResult");
 const sectionList = document.querySelector("#sectionList");
 const draftOutput = document.querySelector("#draftOutput");
 const draftStatus = document.querySelector("#draftStatus");
+const cloudStatus = document.querySelector("#cloudStatus");
+const authEmail = document.querySelector("#authEmail");
+const authPassword = document.querySelector("#authPassword");
+const signInButton = document.querySelector("#signInButton");
+const signUpButton = document.querySelector("#signUpButton");
+const signOutButton = document.querySelector("#signOutButton");
+const saveProjectButton = document.querySelector("#saveProjectButton");
+const cloudMessage = document.querySelector("#cloudMessage");
+const projectList = document.querySelector("#projectList");
 
 render();
+initializeCloud();
 
 function render() {
   renderCategories();
@@ -51,6 +73,8 @@ function renderCategories() {
   categoryNav.querySelectorAll(".category-item").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedItemId = button.dataset.itemId;
+      state.projectId = null;
+      state.drafts = {};
       draftOutput.textContent = "选择可生成章节并补齐资料后，草稿会显示在这里。";
       draftStatus.textContent = "等待生成";
       render();
@@ -154,10 +178,131 @@ function renderSections() {
     button.addEventListener("click", () => {
       const sectionId = button.dataset.sectionId;
       const section = reportSections.find((item) => item.id === sectionId);
+      const draft = generateSectionDraft(sectionId, state.formData);
+      state.drafts[sectionId] = draft;
       draftStatus.textContent = section?.title ?? "章节草稿";
-      draftOutput.textContent = generateSectionDraft(sectionId, state.formData);
+      draftOutput.textContent = draft;
     });
   });
+}
+
+async function initializeCloud() {
+  bindCloudEvents();
+
+  if (!localStorage.getItem("hjyxpjzs_token")) {
+    renderCloudState("未登录", "启动后端后，可以注册账号并保存项目。");
+    return;
+  }
+
+  await runCloudAction(async () => {
+    const result = await getMe();
+    state.currentUser = result.user;
+    await refreshProjectList();
+    renderCloudState();
+  });
+}
+
+function bindCloudEvents() {
+  signUpButton.addEventListener("click", async () => {
+    await runCloudAction(async () => {
+      const result = await register(authEmail.value, authPassword.value);
+      localStorage.setItem("hjyxpjzs_token", result.token);
+      state.currentUser = result.user;
+      await refreshProjectList();
+      renderCloudState("注册成功", `当前账号：${state.currentUser.email}`);
+    });
+  });
+
+  signInButton.addEventListener("click", async () => {
+    await runCloudAction(async () => {
+      const result = await login(authEmail.value, authPassword.value);
+      localStorage.setItem("hjyxpjzs_token", result.token);
+      state.currentUser = result.user;
+      await refreshProjectList();
+      renderCloudState("登录成功", `当前账号：${state.currentUser.email}`);
+    });
+  });
+
+  signOutButton.addEventListener("click", () => {
+    localStorage.removeItem("hjyxpjzs_token");
+    state.currentUser = null;
+    state.projectId = null;
+    projectList.innerHTML = "";
+    renderCloudState("已退出", "当前为未登录状态。");
+  });
+
+  saveProjectButton.addEventListener("click", async () => {
+    await runCloudAction(async () => {
+      if (!state.currentUser) {
+        renderCloudState("请先登录", "登录后才能保存项目到云端。");
+        return;
+      }
+
+      const payload = {
+        projectName: state.formData.projectName,
+        categoryId: state.selectedItemId,
+        formData: state.formData,
+        assessment: assessPigFarmCategory(state.formData),
+        drafts: state.drafts
+      };
+      const result = state.projectId
+        ? await updateProject(state.projectId, payload)
+        : await createProject(payload);
+
+      state.projectId = result.project.id;
+      await refreshProjectList();
+      renderCloudState("保存成功", `项目已保存：${result.project.project_name}`);
+    });
+  });
+}
+
+async function runCloudAction(action) {
+  try {
+    await action();
+  } catch (error) {
+    renderCloudState("操作失败", error.message);
+  }
+}
+
+function renderCloudState(status = null, message = null) {
+  cloudStatus.textContent = status ?? (state.currentUser ? `已登录：${state.currentUser.email}` : "未登录");
+  cloudMessage.textContent = message ?? (state.currentUser ? "可以保存和读取你的云端项目。" : "请登录后保存项目。");
+  signOutButton.disabled = !state.currentUser;
+  saveProjectButton.disabled = !state.currentUser;
+  signInButton.disabled = Boolean(state.currentUser);
+  signUpButton.disabled = Boolean(state.currentUser);
+}
+
+async function refreshProjectList() {
+  const result = await listProjects();
+  projectList.innerHTML = result.projects.length
+    ? result.projects.map(renderProjectListItem).join("")
+    : `<p class="cloud-message">还没有云端项目。</p>`;
+
+  projectList.querySelectorAll("[data-project-id]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await runCloudAction(async () => {
+        const result = await loadProject(button.dataset.projectId);
+        const project = result.project;
+        state.projectId = project.id;
+        state.selectedItemId = project.category_id;
+        state.formData = project.form_data ?? {};
+        state.drafts = project.drafts ?? {};
+        render();
+        renderCloudState("项目已打开", `正在编辑：${project.project_name}`);
+      });
+    });
+  });
+}
+
+function renderProjectListItem(project) {
+  return `
+    <button type="button" data-project-id="${project.id}">
+      ${escapeHtml(project.project_name)}
+      <br />
+      <small>${new Date(project.updated_at).toLocaleString()}</small>
+    </button>
+  `;
 }
 
 function findSelectedItem() {
