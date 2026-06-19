@@ -5,6 +5,7 @@ import { createPool } from "./db.js";
 import { createUserRepository } from "./repositories/userRepository.js";
 import { createProjectRepository } from "./repositories/projectRepository.js";
 import { createAuthRouter } from "./routes/authRoutes.js";
+import { createProjectRouter } from "./routes/projectRoutes.js";
 
 export function createApp(options = {}) {
   const app = express();
@@ -23,6 +24,12 @@ export function createApp(options = {}) {
 
   app.use("/api/auth", createAuthRouter({
     userRepository: repositories.userRepository,
+    jwtSecret
+  }));
+
+  app.use("/api/projects", createProjectRouter({
+    userRepository: repositories.userRepository,
+    projectRepository: repositories.projectRepository,
     jwtSecret
   }));
 
