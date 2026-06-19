@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 构建一个静态前端最小 demo：左侧保留环评分类骨架，右侧实现“畜牧业 -> 生猪养殖”的资料缺失检查、环评类别辅助判断和章节草稿生成。
+**Goal:** 构建一个静态前端最小 demo：左侧保留环评分类骨架，右侧实现“畜牧业 -> 生猪养殖”的资料缺失检查、环评类别辅助判断、语料摘要展示和章节草稿生成。
 
-**Architecture:** 第一版不做真实后端、登录、数据库和大模型。业务规则拆到 `scripts/data.js` 和 `scripts/logic.js`，页面事件放在 `scripts/app.js`，这样后续接后端智能体时可以替换生成逻辑而不重写页面。
+**Architecture:** 第一版不做真实后端、登录、数据库和大模型。业务规则和轻量语料摘要拆到 `scripts/data.js`，可测试逻辑放在 `scripts/logic.js`，页面事件放在 `scripts/app.js`，这样后续接后端智能体时可以替换生成逻辑而不重写页面。
 
 **Tech Stack:** HTML、CSS、原生 JavaScript ES modules、Node.js 内置 `node:test`、Python `http.server` 本地预览。
 
@@ -22,7 +22,7 @@
 |---|---|
 | `index.html` | 页面结构：左侧分类、右侧工作区、表单、章节列表 |
 | `style.css` | 页面视觉、表格、卡片、移动端适配 |
-| `scripts/data.js` | 环评分类骨架、字段配置、报告章节配置 |
+| `scripts/data.js` | 环评分类骨架、字段配置、报告章节配置、32 份生猪养殖语料摘要 |
 | `scripts/logic.js` | 可测试的纯逻辑：类别辅助判断、缺失资料、章节生成 |
 | `scripts/app.js` | 浏览器交互：渲染分类、读取表单、绑定按钮、更新页面 |
 | `tests/logic.test.mjs` | Node 测试：验证业务逻辑不靠浏览器也能跑 |
@@ -104,6 +104,19 @@ export const categories = [
   }
 ];
 
+export const corpusSummary = {
+  sourceName: "32 份生猪养殖环评有效语料",
+  manifestPath: "C:/Users/24308/Documents/Codex/2026-06-19/w-w/outputs/valid_32_pig_eia_manifest.csv",
+  chunksPath: "C:/Users/24308/Documents/Codex/2026-06-19/w-w/outputs/valid_32_pig_eia_chunks.jsonl",
+  caseCount: 32,
+  chunkCount: 7551,
+  pageCount: 7759,
+  commonModels: ["估算模式", "AERSCREEN", "进一步预测", "AERMOD"],
+  commonPollutants: ["NH3", "H2S", "氨", "硫化氢", "臭气", "臭气浓度", "颗粒物", "TSP", "PM10", "PM2.5"],
+  commonProcesses: ["干清粪", "固液分离", "堆肥", "沼气", "厌氧", "污水处理站", "水冲粪", "发酵床", "粪污暂存"],
+  usageNotice: "当前 demo 只使用语料摘要辅助展示，不直接复制报告原文；后续智能体可基于 JSONL 做 RAG 检索并保留案例编号和页码来源。"
+};
+
 export const projectFields = [
   { id: "projectName", label: "项目名称", placeholder: "例：某某年出栏6000头生猪养殖项目" },
   { id: "location", label: "建设地点", placeholder: "例：某省某市某县某村" },
@@ -162,7 +175,7 @@ Create `tests/logic.test.mjs`:
 ```javascript
 import test from "node:test";
 import assert from "node:assert/strict";
-import { categories, reportSections } from "../scripts/data.js";
+import { categories, corpusSummary, reportSections } from "../scripts/data.js";
 
 test("分类骨架包含可用的生猪养殖分项", () => {
   const animalHusbandry = categories.find((category) => category.id === "animal-husbandry");
@@ -183,6 +196,14 @@ test("报告大纲包含六个章节，且三个章节可生成", () => {
     ["basic-info", "engineering-analysis", "impact-measures"]
   );
 });
+
+test("语料摘要记录32份生猪养殖环评案例和常见污染因子", () => {
+  assert.equal(corpusSummary.caseCount, 32);
+  assert.equal(corpusSummary.chunkCount, 7551);
+  assert.ok(corpusSummary.commonPollutants.includes("NH3"));
+  assert.ok(corpusSummary.commonPollutants.includes("H2S"));
+  assert.ok(corpusSummary.commonProcesses.includes("干清粪"));
+});
 ```
 
 - [ ] **Step 4: 运行测试确认数据结构正确**
@@ -193,7 +214,7 @@ Run:
 node --test tests/logic.test.mjs
 ```
 
-Expected: PASS，显示 2 个测试通过。
+Expected: PASS，显示 3 个测试通过。
 
 - [ ] **Step 5: 提交数据骨架**
 
@@ -741,7 +762,7 @@ Expected: 生成一个提交。
 Create `scripts/app.js`:
 
 ```javascript
-import { categories, projectFields, reportSections } from "./data.js";
+import { categories, corpusSummary, projectFields, reportSections } from "./data.js";
 import {
   assessPigFarmCategory,
   canGenerateSection,
@@ -807,7 +828,12 @@ function renderWorkspace() {
 
   if (selected?.id === "pig-farming") {
     workspaceIntro.textContent = "当前开放分项：畜牧业 -> 生猪养殖。请填写项目信息，系统会提示缺少资料并生成章节草稿。";
-    noticePanel.textContent = "提示：本 demo 使用规则模板生成章节草稿，只用于流程演示，不替代正式环评文件。";
+    noticePanel.innerHTML = `
+      <strong>语料摘要：</strong>${corpusSummary.sourceName}，包含 ${corpusSummary.caseCount} 个案例、${corpusSummary.chunkCount} 个文本块。
+      常见污染因子包括：${corpusSummary.commonPollutants.slice(0, 6).join("、")}。
+      常见处理工艺包括：${corpusSummary.commonProcesses.slice(0, 6).join("、")}。
+      <br />提示：本 demo 使用规则模板和语料摘要生成章节草稿，只用于流程演示，不替代正式环评文件。
+    `;
     return;
   }
 
@@ -941,6 +967,7 @@ Expected:
 
 - 左侧显示完整分类骨架。
 - “畜牧业 -> 生猪养殖”默认可用。
+- 顶部提示区显示 32 份案例、7551 个文本块、常见污染因子和常见处理工艺。
 - 填写 `年出栏生猪数量 = 6000` 后，环评类别辅助判断显示“报告书关注”。
 - 未填写粪污、废水、恶臭措施前，“主要环境影响和保护措施”显示资料不完整。
 - 补齐后，按钮可点击并生成章节草稿。
@@ -984,10 +1011,22 @@ Create `README.md`:
 - 显示报告大纲；
 - 标出每个章节缺少哪些资料；
 - 在资料补齐后生成章节草稿。
+- 展示 32 份生猪养殖环评语料的轻量摘要。
 
 ## 重要说明
 
 本 demo 只做辅助判断和章节草稿生成，不替代环评工程师的专业判断，也不作为法律最终结论。
+
+## 生猪养殖语料
+
+本项目当前参考一套本地生猪养殖环评语料包：
+
+```text
+C:\Users\24308\Documents\Codex\2026-06-19\w-w\outputs\valid_32_pig_eia_manifest.csv
+C:\Users\24308\Documents\Codex\2026-06-19\w-w\outputs\valid_32_pig_eia_chunks.jsonl
+```
+
+当前前端只使用语料摘要，不把完整 PDF 或 JSONL 文本块提交到仓库。后续如果接入智能体，可以把 JSONL 导入向量库，用于案例检索、章节写法参考和页码来源追踪。
 
 ## 本地运行
 
@@ -1015,7 +1054,7 @@ node --test tests/logic.test.mjs
 |---|---|---|
 | `index.html` | 页面结构 | 决定页面有哪些区域，比如左侧分类、右侧表单和章节列表 |
 | `style.css` | 页面样式 | 决定页面颜色、布局、卡片、按钮和手机适配 |
-| `scripts/data.js` | 业务数据配置 | 存放环评分类、表单字段和报告章节 |
+| `scripts/data.js` | 业务数据配置 | 存放环评分类、表单字段、报告章节和语料摘要 |
 | `scripts/logic.js` | 业务判断逻辑 | 负责环评类别辅助判断、缺失资料检查和章节草稿生成 |
 | `scripts/app.js` | 页面交互逻辑 | 把数据和页面连起来，处理输入、点击和渲染 |
 | `tests/logic.test.mjs` | 自动测试 | 用命令检查核心业务逻辑是否正确 |
@@ -1067,7 +1106,7 @@ Expected: `main -> main` 推送成功。
 
 ## 自检结果
 
-- Spec coverage：本计划覆盖设计文档中的分类骨架、生猪养殖表单、辅助判断、报告大纲、缺失资料、章节生成、README 和本地验证。
+- Spec coverage：本计划覆盖设计文档中的分类骨架、生猪养殖表单、语料摘要、辅助判断、报告大纲、缺失资料、章节生成、README 和本地验证。
 - Scope check：本计划不做登录、数据库、后端 API、真实智能体和文档导出，符合最小 demo 范围。
 - Placeholder scan：本计划未保留空白待补内容。
 - Type consistency：`projectName`、`location`、`annualOutput`、`stock`、`sensitiveArea`、`manureTreatment`、`wastewaterTreatment`、`odorControl` 在数据、逻辑、测试和页面中保持一致。
