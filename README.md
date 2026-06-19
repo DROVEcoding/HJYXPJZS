@@ -45,6 +45,16 @@ python -m http.server 8788
 http://127.0.0.1:8788/
 ```
 
+## 线上访问
+
+配置 GitHub Pages 后，线上地址预计是：
+
+```text
+https://drovecoding.github.io/HJYXPJZS/
+```
+
+如果这个地址暂时打不开，通常是 GitHub Actions 还在部署，或者仓库的 Pages 设置还没有启用。
+
 ## 运行测试
 
 ```powershell
