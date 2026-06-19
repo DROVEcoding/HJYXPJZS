@@ -47,13 +47,15 @@ http://127.0.0.1:8788/
 
 ## 线上访问
 
-配置 GitHub Pages 后，线上地址预计是：
+当前仓库是私有仓库。GitHub 返回的信息显示：当前账号计划不支持给这个私有仓库开启 GitHub Pages。
+
+如果后续把仓库改成公开，或者换成支持私有 Pages 的 GitHub 计划，可以手动运行 `.github/workflows/pages.yml` 部署。线上地址预计是：
 
 ```text
 https://drovecoding.github.io/HJYXPJZS/
 ```
 
-如果这个地址暂时打不开，通常是 GitHub Actions 还在部署，或者仓库的 Pages 设置还没有启用。
+如果暂时不想公开仓库，可以继续用本地预览地址，或后续改用 Vercel、Netlify、Cloudflare Pages 等部署方式。
 
 ## 运行测试
 
