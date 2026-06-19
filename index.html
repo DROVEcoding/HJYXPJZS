@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>环境影响评价助手</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">EIA Demo</p>
+          <h1>环境影响评价助手</h1>
+          <p>基于分类名录的生猪养殖环评资料梳理 demo</p>
+        </div>
+        <nav id="categoryNav" class="category-nav" aria-label="环评分类"></nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="panel hero-panel">
+          <p class="eyebrow">最小可演示流程</p>
+          <h2 id="workspaceTitle">请选择左侧分项</h2>
+          <p id="workspaceIntro">当前 demo 前端保留完整分类骨架，已开放“畜牧业 -> 生猪养殖”。</p>
+        </section>
+
+        <section id="noticePanel" class="notice-panel"></section>
+
+        <section class="panel form-panel">
+          <div class="section-heading">
+            <h3>项目信息</h3>
+            <span>资料越完整，章节草稿越可用</span>
+          </div>
+          <form id="projectForm" class="project-form"></form>
+        </section>
+
+        <section class="panel assessment-panel">
+          <div class="section-heading">
+            <h3>环评类别辅助判断</h3>
+            <span>仅作 demo 辅助判断</span>
+          </div>
+          <div id="assessmentResult" class="assessment-result"></div>
+        </section>
+
+        <section class="panel outline-panel">
+          <div class="section-heading">
+            <h3>报告大纲与缺失资料</h3>
+            <span>补齐资料后生成章节草稿</span>
+          </div>
+          <div id="sectionList" class="section-list"></div>
+        </section>
+
+        <section class="panel draft-panel">
+          <div class="section-heading">
+            <h3>章节草稿</h3>
+            <span id="draftStatus">等待生成</span>
+          </div>
+          <article id="draftOutput" class="draft-output">选择可生成章节并补齐资料后，草稿会显示在这里。</article>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./scripts/app.js"></script>
+  </body>
+</html>
