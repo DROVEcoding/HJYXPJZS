@@ -92,6 +92,18 @@ npm start
 
 注意：真实的 `DATABASE_URL`、`JWT_SECRET`、数据库密码、云平台 AK/SK 不能提交到 GitHub。
 
+本项目 V1 已在阿里云 RDS AI / Supabase 托管实例中初始化业务表：
+
+| 配置项 | 当前值 | 说明 |
+| --- | --- | --- |
+| RDS 实例 | `pgm-uf63zev13vbtpw3s` | 阿里云 RDS PostgreSQL 17 实例 |
+| 业务数据库 | `supabase_db` | 当前后端应连接这个数据库 |
+| 业务 schema | `public` | 已创建 `users`、`projects` 表 |
+| 内网地址 | `pgm-uf63zev13vbtpw3s.pg.rds.aliyuncs.com` | 后端部署到阿里云同区域时优先使用内网 |
+| 端口 | `5432` | PostgreSQL 默认端口 |
+
+部署到阿里云服务端时，`DATABASE_URL` 应使用 `supabase_db` 作为数据库名；数据库用户名和密码在阿里云控制台或部署环境变量中填写，不写入仓库。
+
 ## 线上访问
 
 当前仓库是私有仓库。GitHub 返回的信息显示：当前账号计划不支持给这个私有仓库开启 GitHub Pages。
